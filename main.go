@@ -29,7 +29,6 @@ func main() {
 	//scroll to end
 	pageScanner.scrollToEnd()
 
-
 	// Get all post links
 	pageScanner.updatePostSlice("x1lliihq.x1n2onr6.xh8yej3.x4gyw5p.x11i5rnm.x1ntc13c.x9i3mqj.x2pgyrj")
 
@@ -38,4 +37,12 @@ func main() {
 	wg.Add(1)
 	pageScanner.scanPages(&wg)
 	wg.Wait()
+
+	for _, postInfo := range pageScanner.pageInfos {
+		fmt.Printf("url : %s \n",postInfo.url)
+		fmt.Printf("likes : %s \n",postInfo.likes)
+		fmt.Printf("hashtags : %s \n",postInfo.hashtags)
+		fmt.Printf("profileTags : %s \n",postInfo.profileTags)
+		fmt.Println("--------------------")
+	}
 }
