@@ -2,12 +2,10 @@ package main
 
 import (
 	"fmt"
-	"strings"
 	"sync"
-	"time"
+	// "time"
 	"os"
 	"github.com/go-rod/rod"
-	"github.com/go-rod/rod/lib/input"
 )
 
 func pageCloser(page *rod.Page){
@@ -18,54 +16,26 @@ func pageCloser(page *rod.Page){
 
 
 func main() {
-	browser := rod.New().MustConnect()
-	page := browser.MustPage("https://www.instagram.com/accounts/login/")
-	page.MustWaitLoad()
-	defer pageCloser(page)
-	time.Sleep(3 * time.Second)
 
+	pageScanner := createPageScanner("https://www.instagram.com/accounts/login/")
+	defer pageScanner.closeMainPage()
 
 	// Login
-	page.MustElement("input[name='username']").MustInput(os.Getenv("INSTA_USERNAME"))
-	page.MustElement("input[name='password']").MustInput(os.Getenv("INSTA_PASSWORD")).MustType(input.Enter)
-	page.MustWaitNavigation()
-	time.Sleep(5 * time.Second)
+	pageScanner.loginInstagram(os.Getenv("INSTA_USERNAME"),os.Getenv("INSTA_PASSWORD"))
 
 	// Navigate to profile
-	page.MustNavigate("https://www.instagram.com/districtupdates/")
-	page.MustWaitLoad()
-	fmt.Println("Page loading start")
-	time.Sleep(5 * time.Second)
-	fmt.Println("Page loading end")
-	
-	fmt.Println("Page scroll start")
-	page.Mouse.Scroll(0, 99999, 5)
-	
-	time.Sleep(10 * time.Second)
-	fmt.Println("Page scroll end")
+	pageScanner.navigateToProfileWithURL("https://www.instagram.com/districtupdates/")
 
-	// Scroll to bottom
+	//scroll to end
+	pageScanner.scrollToEnd()
+
 
 	// Get all post links
-	links := page.MustElements("a")
-	postLinks := []string{}
+	pageScanner.updatePostSlice("x1lliihq.x1n2onr6.xh8yej3.x4gyw5p.x11i5rnm.x1ntc13c.x9i3mqj.x2pgyrj")
 
-	for _, link := range links {
-		hrefPtr, _ := link.Attribute("href")
-		if hrefPtr != nil && strings.Contains(*hrefPtr, "/districtupdates/p/") {
-			postLinks = append(postLinks, "https://www.instagram.com"+*hrefPtr)
-		}
-	}
-
-	fmt.Println("Pages scanned : ", len(postLinks) )
-
-	// create page scanner
-	pageScanner := getPageScanner(postLinks, browser)
-
+	// scan pages
 	var wg sync.WaitGroup
 	wg.Add(1)
-	// scan pages
 	pageScanner.scanPages(&wg)
-
 	wg.Wait()
 }
