@@ -58,13 +58,28 @@ func (p *PageScanner) navigateToProfileWithURL(url string){
 	fmt.Println("Page loading end")
 }
 
-func (p *PageScanner) scrollToEnd(){
+func (p *PageScanner) scrollToEnd(divName string, infiniteScroll bool){
+	var i int
+	if infiniteScroll {
+		i = -1000
+	}else{
+		i = 0
+	}
+	for i = 0 ; i<3;i++{
+		numberOfElements := p.getPostArrayLength(divName)
+		fmt.Println("Page scroll start")
+		p.main_page.Mouse.Scroll(0, 99999, 5)
+		time.Sleep(10 * time.Second)
+		fmt.Println("Page scroll end")
+		if numberOfElements == p.getPostArrayLength(divName){
+			break
+		}
+	}
+}
 
-	fmt.Println("Page scroll start")
-	p.main_page.Mouse.Scroll(0, 99999, 5)
-	time.Sleep(10 * time.Second)
-	fmt.Println("Page scroll end")
-
+func (p *PageScanner) getPostArrayLength(divName string) int {
+	elements := p.main_page.MustElements(fmt.Sprintf(`div.%s`,divName))
+	return len(elements)
 }
 
 func (p *PageScanner) updatePostSlice(divName string){
@@ -88,7 +103,7 @@ func (p *PageScanner) updatePostSlice(divName string){
 			}
 			// Append to the pageURLs slice
 			pageInfo := PageInfo{
-				url : *href,
+				Url : *href,
 			}
 			p.pageInfos = append(p.pageInfos, &pageInfo)
 		}
@@ -108,7 +123,17 @@ func (p *PageScanner) printURLS(){
 func (p *PageScanner) scanPages(main_wg *sync.WaitGroup) {
 	defer main_wg.Done()
 	fmt.Println("Page scanner started")
+
+	waitConuter := 10
+
 	for _, postURL := range p.pageInfos {
+
+		waitConuter--
+		if waitConuter <= 0 {
+			time.Sleep(10 * time.Second)
+			waitConuter = 10
+		}
+
 		p.main_page_wg.Add(1)
 		go p.scanPage(postURL)
 		// p.scanPage(postURL.url)
@@ -119,7 +144,7 @@ func (p *PageScanner) scanPages(main_wg *sync.WaitGroup) {
 func (p *PageScanner) scanPage(pageInfo *PageInfo) {
 
 	defer p.main_page_wg.Done()
-	pageURL := pageInfo.url
+	pageURL := pageInfo.Url
 
 	// fmt.Print("Page Started : ", pageURL," : ")
 	// fmt.Println(pageURL == "https://www.instagram.com/districtupdates/p/DIjYNt1TVYI/")
@@ -150,7 +175,7 @@ func (p *PageScanner) scanPage(pageInfo *PageInfo) {
 func (p *PageScanner) getLikes(postPage *rod.Page, pageInfo *PageInfo) {
 
 	currentURL := postPage.MustInfo().URL
-	likeSpan, err := postPage.Element("span.xdj266r.x11i5rnm.xat24cr.x1mh8g0r.xexx8yu.x4uap5.x18d9i69.xkhd6sd.x1hl2dhg.x16tdsg8.x1vvkbs")
+	likeSpan, err := postPage.Element(likesClassName)
 	var likesText string
 	
 
@@ -159,14 +184,14 @@ func (p *PageScanner) getLikes(postPage *rod.Page, pageInfo *PageInfo) {
 	} else {
 		likesText = "[Error] : Unable to find likes on " + currentURL
 	}
-	pageInfo.likes = likesText
+	pageInfo.Likes = likesText
 }
 
 func (p *PageScanner) getPostInfo(postPage *rod.Page, pageInfo *PageInfo) {
 
 	currentURL := postPage.MustInfo().URL
 
-	captionEl, err := postPage.Timeout(3 * time.Second).Element("h1._ap3a._aaco._aacu._aacx._aad7._aade")
+	captionEl, err := postPage.Timeout(3 * time.Second).Element(postInfoClassName)
 
 	var captionText string
 	if err == nil {
@@ -174,12 +199,12 @@ func (p *PageScanner) getPostInfo(postPage *rod.Page, pageInfo *PageInfo) {
 	} else {
 		captionText = "[Error] : Caption not found on : "+ currentURL
 	}
-	pageInfo.caption = captionText
+	pageInfo.Caption = captionText
 }
 
 
 func (p *PageScanner) getHashTagAndTag(postPage *rod.Page, pageInfo *PageInfo){
-	captionElement, err := postPage.Timeout(3 * time.Second).Element("h1._ap3a._aaco._aacu._aacx._aad7._aade")
+	captionElement, err := postPage.Timeout(3 * time.Second).Element(postInfoClassName)
 	if err != nil {
 		log.Fatal(fmt.Sprintf("PageScanner.getHashTagAndTags : %e", err))
 		return
@@ -198,6 +223,6 @@ func (p *PageScanner) getHashTagAndTag(postPage *rod.Page, pageInfo *PageInfo){
 		}
 	}
 
-	pageInfo.hashtags = hashtags
-	pageInfo.profileTags = profileTags
+	pageInfo.Hashtags = hashtags
+	pageInfo.ProfileTags = profileTags
 }
