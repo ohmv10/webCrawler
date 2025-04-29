@@ -25,7 +25,6 @@ type InstagramGraphQLResponse struct {
 }
 
 func DownloadLinkGenerator(reelShortcode string)(string, error){
-
 	reelShortcode = path.Base(strings.TrimSuffix(reelShortcode, "/"))
 
 	if reelShortcode == ""  {

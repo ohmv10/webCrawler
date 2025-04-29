@@ -64,12 +64,18 @@ func main() {
 	mongoInstance.connectCollection("pravah")
 	mongoInstance.insertData(pageScanner.pageInfos)
 
+	var download_wg sync.WaitGroup
 
 	for _, pageInfo := range pageScanner.pageInfos{
-		_,err := instagramvideodownloader.DownloadLinkGenerator(pageInfo.Url)
-		if err != nil {
-			fmt.Println("Error generating download link:", err)
-			continue
-		}
+		download_wg.Add(1)
+		go func (url string)  {
+			defer download_wg.Done()
+			_,err := instagramvideodownloader.DownloadLinkGenerator(pageInfo.Url)
+			if err != nil {
+				fmt.Println("Error generating download link:", err)
+				return
+			}
+		}(pageInfo.Url)
 	}
+	download_wg.Wait()
 }
