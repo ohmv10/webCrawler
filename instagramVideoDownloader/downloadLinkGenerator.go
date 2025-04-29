@@ -5,7 +5,11 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"path"
+
+	// "io"
 	"net/http"
+	// "net/http/httptrace"
 	"net/url"
 	"strings"
 )
@@ -22,25 +26,29 @@ type InstagramGraphQLResponse struct {
 
 func DownloadLinkGenerator(reelShortcode string)(string, error){
 
+	reelShortcode = path.Base(strings.TrimSuffix(reelShortcode, "/"))
+
 	if reelShortcode == ""  {
 		return "", errors.New("reelShortcode is empty")
 	}
 	resp, err := getInstagramPostGraphQL(reelShortcode)
-	bodyBytes, _ := io.ReadAll(resp.Body)
-	fmt.Println("Raw body:", string(bodyBytes))
-	defer resp.Body.Close()
+	// bodyBytes, _ := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", err
 	}
+	defer resp.Body.Close()
 
 	switch resp.StatusCode {
 	case http.StatusOK:
+		bodyBytes, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return "", errors.New("failed to read response body")
+		}
+
+		// fmt.Println("Raw Response Body:\n", string(bodyBytes)) // Debug output
+
 		var igResp InstagramGraphQLResponse
-		err := json.NewDecoder(resp.Body).Decode(&igResp)
-		fmt.Println("igResp: ", igResp)
-
-		
-
+		err = json.Unmarshal(bodyBytes, &igResp)
 		if  err != nil {
 			return  "", errors.New("failed to decode response")
 		}
@@ -51,8 +59,10 @@ func DownloadLinkGenerator(reelShortcode string)(string, error){
 		if !igResp.Data.XDTShortcodeMedia.IsVideo {
 			return "", errors.New("post is not a video")
 		}
-		igResp.Data.XDTShortcodeMedia.VideoURL = url.QueryEscape(igResp.Data.XDTShortcodeMedia.VideoURL)
-		return igResp.Data.XDTShortcodeMedia.VideoURL, nil
+		fmt.Println(reelShortcode)
+		return "", DownloadProxy(igResp.Data.XDTShortcodeMedia.VideoURL, fmt.Sprintf("%s.mp4", reelShortcode))
+
+		// return igResp.Data.XDTShortcodeMedia.VideoURL, nil
 		
 	case http.StatusNotFound:
 		return "", errors.New("post not found")
@@ -66,7 +76,6 @@ func DownloadLinkGenerator(reelShortcode string)(string, error){
 func getInstagramPostGraphQL(shortcode string) (*http.Response, error) {
 	requestURL := "https://www.instagram.com/graphql/query"
 	body := generateRequestBody(shortcode)
-
 	req, err := http.NewRequest("POST", requestURL, strings.NewReader(body))
 	if err != nil {
 		return nil, err
@@ -88,7 +97,7 @@ func getInstagramPostGraphQL(shortcode string) (*http.Response, error) {
 	req.Header.Set("Sec-Fetch-Site", "same-origin")
 	req.Header.Set("Pragma", "no-cache")
 	req.Header.Set("Cache-Control", "no-cache")
-	req.Header.Set("Referer", fmt.Sprintf("https://www.instagram.com/p/%s/", shortcode))	
+	req.Header.Set("Referer", fmt.Sprintf("https://www.instagram.com/%s/", shortcode))
 
 	client := &http.Client{}
 	return client.Do(req)

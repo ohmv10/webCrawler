@@ -62,37 +62,11 @@ func (m *MongoInstace) insertData(pageInfos []*PageInfo){
 	fmt.Printf("Inserted documents: %v\n", insertResult.InsertedIDs)
 }
 
-// Assuming your mongoInstance has a 'collection' field that is a *mongo.Collection
-// func (m *MongoInstace) loadPageInfosFromDB(pageScanner *PageScanner) {
-// 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-// 	defer cancel()
-
-// 	cursor, err := m.collection.Find(ctx, bson.M{})
-// 	if err != nil {
-// 		log.Fatalf("Failed to query collection: %v", err)
-// 	}
-// 	defer cursor.Close(ctx)
-
-// 	for cursor.Next(ctx) {
-// 		var pageInfo PageInfo
-// 		if err := cursor.Decode(&pageInfo); err != nil {
-// 			log.Printf("Failed to decode document: %v", err)
-// 			continue
-// 		}
-// 		pageScanner.pageInfos = append(pageScanner.pageInfos, &pageInfo)
-// 	}
-
-// 	if err := cursor.Err(); err != nil {
-// 		log.Fatalf("Cursor error: %v", err)
-// 	}
-// }
-
-
 func (m *MongoInstace) loadPageInfosFromDB( pageScanner *PageScanner) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	opts := options.Find().SetLimit(5)
+	opts := options.Find()
 
 	cursor, err := m.collection.Find(ctx, bson.M{}, opts)
 	if err != nil {

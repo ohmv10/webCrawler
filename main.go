@@ -3,8 +3,11 @@ package main
 import (
 	"fmt"
 	"instagramVideoDownloader"
-	"path"
-	"strings"
+	"os"
+	// "path"
+	// "strings"
+	"sync"
+
 	// "sync"
 	// "os"
 
@@ -25,64 +28,47 @@ var likesClassName string = "span.xdj266r.x11i5rnm.xat24cr.x1mh8g0r.xexx8yu.x4ua
 var postInfoClassName string = "h1._ap3a._aaco._aacu._aacx._aad7._aade"
 
 func main() {
-	// pageScanner := createPageScanner("https://www.instagram.com/accounts/login/")
-	// defer pageScanner.closeMainPage()
+	pageScanner := createPageScanner("https://www.instagram.com/accounts/login/")
+	defer pageScanner.closeMainPage()
 
-	// // Login
-	// pageScanner.loginInstagram(os.Getenv("INSTA_USERNAME"),os.Getenv("INSTA_PASSWORD"))
+	// Login
+	pageScanner.loginInstagram(os.Getenv("INSTA_USERNAME"),os.Getenv("INSTA_PASSWORD"))
 
-	// // Navigate to profile
-	// // pageScanner.navigateToProfileWithURL("https://www.instagram.com/districtupdates/")
+	// Navigate to profile
 	// pageScanner.navigateToProfileWithURL("https://www.instagram.com/districtupdates/")
+	pageScanner.navigateToProfileWithURL("https://www.instagram.com/districtupdates/")
 
-	// //scroll to end
-	// pageScanner.scrollToEnd(mediaClassName,false)
+	//scroll to end
+	pageScanner.scrollToEnd(mediaClassName,false)
 
-	// // Get all post links
-	// pageScanner.updatePostSlice(mediaClassName)
+	// Get all post links
+	pageScanner.updatePostSlice(mediaClassName)
 
-	// // scan pages
-	// var wg sync.WaitGroup
-	// wg.Add(1)
-	// pageScanner.scanPages(&wg)
-	// wg.Wait()
+	// scan pages
+	var wg sync.WaitGroup
+	wg.Add(1)
+	pageScanner.scanPages(&wg)
+	wg.Wait()
 
-	// for _, postInfo := range pageScanner.pageInfos {
-	// 	fmt.Printf("url : %s \n",postInfo.Url)
-	// 	fmt.Printf("likes : %s \n",postInfo.Likes)
-	// 	fmt.Printf("hashtags : %s \n",postInfo.Hashtags)
-	// 	fmt.Printf("profileTags : %s \n",postInfo.ProfileTags)
-	// 	fmt.Println("--------------------")
-	// }
+	for _, postInfo := range pageScanner.pageInfos {
+		fmt.Printf("url : %s \n",postInfo.Url)
+		fmt.Printf("likes : %s \n",postInfo.Likes)
+		fmt.Printf("hashtags : %s \n",postInfo.Hashtags)
+		fmt.Printf("profileTags : %s \n",postInfo.ProfileTags)
+		fmt.Println("--------------------")
+	}
 
-	// uri := "mongodb://localhost:27017"
-	// mongoInstance := createInstance(uri)
-	// mongoInstance.connectDB("insta")
-	// mongoInstance.connectCollection("pravah")
-	// mongoInstance.insertData(pageScanner.pageInfos)
-	
-	// download videos test
-	
 	uri := "mongodb://localhost:27017"
 	mongoInstance := createInstance(uri)
 	mongoInstance.connectDB("insta")
 	mongoInstance.connectCollection("pravah")
-	var pageScanner PageScanner
-	mongoInstance.loadPageInfosFromDB(&pageScanner)
+	mongoInstance.insertData(pageScanner.pageInfos)
+
 
 	for _, pageInfo := range pageScanner.pageInfos{
-
-		reelShortCode := path.Base(strings.TrimSuffix(pageInfo.Url, "/"))
-		fmt.Println("Reel Shortcode: ", reelShortCode)
-		downloadURL,err := instagramvideodownloader.DownloadLinkGenerator(reelShortCode)
+		_,err := instagramvideodownloader.DownloadLinkGenerator(pageInfo.Url)
 		if err != nil {
 			fmt.Println("Error generating download link:", err)
-			continue
-		}
-		err = instagramvideodownloader.DownloadProxy(downloadURL, fmt.Sprintf("%s.mp4",pageInfo.Url))
-
-		if err != nil {
-			fmt.Println("Error downloading video:", err)
 			continue
 		}
 	}
