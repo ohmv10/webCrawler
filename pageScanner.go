@@ -65,7 +65,7 @@ func (p *PageScanner) scrollToEnd(divName string, infiniteScroll bool){
 	}else{
 		i = 0
 	}
-	for i = 0 ; i<3;i++{
+	for i = 0 ; i<1;i++{
 		numberOfElements := p.getPostArrayLength(divName)
 		fmt.Println("Page scroll start")
 		p.main_page.Mouse.Scroll(0, 99999, 5)
@@ -206,7 +206,7 @@ func (p *PageScanner) getPostInfo(postPage *rod.Page, pageInfo *PageInfo) {
 func (p *PageScanner) getHashTagAndTag(postPage *rod.Page, pageInfo *PageInfo){
 	captionElement, err := postPage.Timeout(3 * time.Second).Element(postInfoClassName)
 	if err != nil {
-		log.Fatal(fmt.Sprintf("PageScanner.getHashTagAndTags : %e", err))
+		log.Fatal(fmt.Sprintf("PageScanner.getHashTagAndTags : %v", err))
 		return
 	}
 	var hashtags, profileTags []string
