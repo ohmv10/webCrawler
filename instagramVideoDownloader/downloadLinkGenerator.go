@@ -24,7 +24,7 @@ type InstagramGraphQLResponse struct {
 	} `json:"data"`
 }
 
-func DownloadLinkGenerator(reelShortcode string)(string, error){
+func DownloadLinkGenerator(reelShortcode, folder string)(string, error){
 	reelShortcode = path.Base(strings.TrimSuffix(reelShortcode, "/"))
 
 	if reelShortcode == ""  {
@@ -59,7 +59,7 @@ func DownloadLinkGenerator(reelShortcode string)(string, error){
 			return "", errors.New("post is not a video")
 		}
 		fmt.Println(reelShortcode)
-		return "", DownloadProxy(igResp.Data.XDTShortcodeMedia.VideoURL, fmt.Sprintf("%s.mp4", reelShortcode))
+		return "", DownloadProxy(igResp.Data.XDTShortcodeMedia.VideoURL, fmt.Sprintf("%s/%s.mp4",folder, reelShortcode))
 
 		// return igResp.Data.XDTShortcodeMedia.VideoURL, nil
 		

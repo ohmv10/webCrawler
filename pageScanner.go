@@ -65,7 +65,7 @@ func (p *PageScanner) scrollToEnd(divName string, infiniteScroll bool){
 	}else{
 		i = 0
 	}
-	for i = 0 ; i<1;i++{
+	for i = 0 ; i<5;i++{
 		numberOfElements := p.getPostArrayLength(divName)
 		fmt.Println("Page scroll start")
 		p.main_page.Mouse.Scroll(0, 99999, 5)
@@ -188,41 +188,55 @@ func (p *PageScanner) getLikes(postPage *rod.Page, pageInfo *PageInfo) {
 }
 
 func (p *PageScanner) getPostInfo(postPage *rod.Page, pageInfo *PageInfo) {
+	counter := 0
+	for ;counter<3; counter++{
 
-	currentURL := postPage.MustInfo().URL
+		currentURL := postPage.MustInfo().URL
 
-	captionEl, err := postPage.Timeout(3 * time.Second).Element(postInfoClassName)
+		captionEl, err := postPage.Timeout(3 * time.Second).Element(postInfoClassName)
 
-	var captionText string
-	if err == nil {
-		captionText = captionEl.MustText()
-	} else {
-		captionText = "[Error] : Caption not found on : "+ currentURL
+		var captionText string
+		if err == nil {
+			captionText = captionEl.MustText()
+			pageInfo.Caption = captionText
+			return 
+		} else {
+			captionText = "[Error] : Caption not found on : "+ currentURL
+		}
 	}
-	pageInfo.Caption = captionText
 }
 
 
 func (p *PageScanner) getHashTagAndTag(postPage *rod.Page, pageInfo *PageInfo){
-	captionElement, err := postPage.Timeout(3 * time.Second).Element(postInfoClassName)
-	if err != nil {
-		log.Fatal(fmt.Sprintf("PageScanner.getHashTagAndTags : %v", err))
-		return
-	}
-	var hashtags, profileTags []string
+	counter := 0
+	done := false
+	for ;counter<3; counter++{
+	
+		captionElement, err := postPage.Timeout(3 * time.Second).Element(postInfoClassName)
+		if err != nil {
+			fmt.Printf("PageScanner.getHashTagAndTags %d | %s: %v",counter,postPage.MustInfo().URL, err)
+			return
+		}
+		var hashtags, profileTags []string
 
-	tags := captionElement.MustElements("a")
-	for _, tag := range tags {
-		tagText := tag.MustText()
-		if tagText[0] == '#'{
-			hashtags = append(hashtags, tagText[1:])
-		}else if tagText[0] == '@'{
-			profileTags = append(profileTags, tagText[1:])
-		}else{
-			log.Fatalf("PageScanner.getHashTagAndTags invalid tag text: %s", tagText )
+		tags := captionElement.MustElements("a")
+		for _, tag := range tags {
+			tagText := tag.MustText()
+			if tagText[0] == '#'{
+				done = true
+				hashtags = append(hashtags, tagText[1:])
+				pageInfo.Hashtags = hashtags
+
+			}else if tagText[0] == '@'{
+				done = true
+				profileTags = append(profileTags, tagText[1:])
+				pageInfo.ProfileTags = profileTags
+				}else{
+				fmt.Printf("PageScanner.getHashTagAndTags invalid tag text: %d | %s: %v",counter,postPage.MustInfo().URL, tagText)
+			}
+			if done {
+				break
+			}
 		}
 	}
-
-	pageInfo.Hashtags = hashtags
-	pageInfo.ProfileTags = profileTags
 }
