@@ -65,7 +65,7 @@ func (p *PageScanner) scrollToEnd(divName string, infiniteScroll bool){
 	}else{
 		i = 0
 	}
-	for i = 0 ; i<5;i++{
+	for i = 0 ; i<1;i++{
 		numberOfElements := p.getPostArrayLength(divName)
 		fmt.Println("Page scroll start")
 		p.main_page.Mouse.Scroll(0, 99999, 5)

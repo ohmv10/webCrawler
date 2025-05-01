@@ -37,11 +37,11 @@ func saveVideoToDisk(fileURL, filename string) error {
 	}
 	defer resp.Body.Close()
 
-	if err := os.MkdirAll("./downloads", os.ModePerm); err != nil {
+	if err := os.MkdirAll("./downloads1", os.ModePerm); err != nil {
 		return fmt.Errorf("failed to create downloads directory: %v", err)
 	}
 
-	out, err := os.Create("./downloads/" + filename)
+	out, err := os.Create("./downloads1/" + filename)
 	if err != nil {
 		return fmt.Errorf("failed to create file: %v", err)
 	}

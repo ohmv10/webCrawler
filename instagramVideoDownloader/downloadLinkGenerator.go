@@ -24,16 +24,78 @@ type InstagramGraphQLResponse struct {
 	} `json:"data"`
 }
 
-func DownloadLinkGenerator(reelShortcode, folder string)(string, error){
+type Response struct {
+	Data struct {
+		XdtShortcodeMedia struct {
+			IsVideo  bool   `json:"is_video"`
+			VideoURL string `json:"video_url"`
+			EdgeMediaToCaption struct {
+				Edges []struct {
+					Node struct {
+						Text string `json:"text"`
+					} `json:"node"`
+				} `json:"edges"`
+			} `json:"edge_media_to_caption"`
+			EdgeMediaPreviewLike struct {
+				Count int `json:"count"`
+			} `json:"edge_media_preview_like"`
+			EdgeMediaToTaggedUser struct {
+				Edges []struct {
+					Node struct {
+						User struct {
+							Username string `json:"username"`
+							FullName string `json:"full_name"`
+						} `json:"user"`
+					} `json:"node"`
+				} `json:"edges"`
+			} `json:"edge_media_to_tagged_user"`
+			Owner struct {
+				Username string `json:"username"`
+			} `json:"owner"`
+		} `json:"xdt_shortcode_media"`
+	} `json:"data"`
+	Hashtags []string `json:"hashtags"`
+	Caption  string   `json:"caption"`
+}
+
+
+// extractHashtags extracts hashtags from text
+func extractHashtags(text string) []string {
+	var hashtags []string
+	words := strings.Fields(text)
+	for _, word := range words {
+		if strings.HasPrefix(word, "#") {
+			hashtags = append(hashtags, word)
+		}
+	}
+	return hashtags
+}
+
+func FillData(igResp Response){
+	var captions []string
+	for _, edge := range igResp.Data.XdtShortcodeMedia.EdgeMediaToCaption.Edges {
+		captions = append(captions, edge.Node.Text)
+	}
+	igResp.Caption = strings.Join(captions, "\n\n") // Join captions with double newline
+
+	// Extract hashtags from captions
+	for _, edge := range igResp.Data.XdtShortcodeMedia.EdgeMediaToCaption.Edges {
+		igResp.Hashtags = append(igResp.Hashtags, extractHashtags(edge.Node.Text)...)
+	}
+
+}
+
+// DownloadLinkGenerator generates download link and populates Response
+func DownloadLinkGenerator(reelShortcode, folder string) (Response, error) {
 	reelShortcode = path.Base(strings.TrimSuffix(reelShortcode, "/"))
 
-	if reelShortcode == ""  {
-		return "", errors.New("reelShortcode is empty")
+	if reelShortcode == "" {
+		return Response{}, errors.New("reelShortcode is empty")
 	}
+
 	resp, err := getInstagramPostGraphQL(reelShortcode)
-	// bodyBytes, _ := io.ReadAll(resp.Body)
 	if err != nil {
-		return "", err
+		return Response{}, err
 	}
 	defer resp.Body.Close()
 
@@ -41,37 +103,39 @@ func DownloadLinkGenerator(reelShortcode, folder string)(string, error){
 	case http.StatusOK:
 		bodyBytes, err := io.ReadAll(resp.Body)
 		if err != nil {
-			return "", errors.New("failed to read response body")
+			return Response{}, errors.New("failed to read response body")
 		}
 
-		// fmt.Println("Raw Response Body:\n", string(bodyBytes)) // Debug output
-
-		var igResp InstagramGraphQLResponse
+		var igResp Response
 		err = json.Unmarshal(bodyBytes, &igResp)
-		if  err != nil {
-			return  "", errors.New("failed to decode response")
-		}
-		if igResp.Data.XDTShortcodeMedia.VideoURL == "" {
-			return "", errors.New("video URL not found")
+		FillData(igResp)
+		if err != nil {
+			return igResp, errors.New("failed to decode response")
 		}
 
-		if !igResp.Data.XDTShortcodeMedia.IsVideo {
-			return "", errors.New("post is not a video")
+		if igResp.Data.XdtShortcodeMedia.VideoURL == "" {
+			return igResp, errors.New("video URL not found")
 		}
+
+		if !igResp.Data.XdtShortcodeMedia.IsVideo {
+			return igResp, errors.New("post is not a video")
+		}
+
 		fmt.Println(reelShortcode)
-		return "", DownloadProxy(igResp.Data.XDTShortcodeMedia.VideoURL, fmt.Sprintf("%s/%s.mp4",folder, reelShortcode))
+		if DownloadProxy(igResp.Data.XdtShortcodeMedia.VideoURL, fmt.Sprintf("%s/%s.mp4", folder, reelShortcode)) != nil {
+			return igResp, errors.New("failed to download video")
+		}
 
-		// return igResp.Data.XDTShortcodeMedia.VideoURL, nil
-		
+		return igResp, nil 
+
 	case http.StatusNotFound:
-		return "", errors.New("post not found")
+		return Response{}, errors.New("post not found")
 	case http.StatusTooManyRequests, http.StatusUnauthorized:
-		return "", errors.New("too many requests, try again later")
+		return Response{}, errors.New("too many requests, try again later")
 	default:
-		return "", errors.New("unexpected status code")
+		return Response{}, errors.New("unexpected status code")
 	}
 }
-
 func getInstagramPostGraphQL(shortcode string) (*http.Response, error) {
 	requestURL := "https://www.instagram.com/graphql/query"
 	body := generateRequestBody(shortcode)

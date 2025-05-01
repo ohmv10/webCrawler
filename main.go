@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"instagramVideoDownloader"
 	"os"
+	"strconv"
+
 	// "path"
 	// "strings"
 	"sync"
@@ -42,7 +44,6 @@ var folders []string = []string{
 	"caravaggio",
 	"bestcomedylineup",
 	"bestcomedylineup",
-	"shapingtextures",
 	"taarukraina",
 	"ankurtewari",
 	"ankurtewari",
@@ -63,7 +64,6 @@ var urls []string= []string{
 	"https://www.instagram.com/knmaindia/",	
 	"https://www.instagram.com/madhurvirli/",	
 	"https://www.instagram.com/pranavsharm_a/",
-	"https://www.instagram.com/p/DGiQSxuNYuJ/",	
 	"https://www.instagram.com/taarukraina/",	
 	"https://www.instagram.com/ankurtewatia_/",	
 	"https://www.instagram.com/ghalatfamily/",
@@ -84,50 +84,63 @@ func main() {
 		pageURL = urls[i]
 
 
-	// Navigate to profile
-	// pageScanner.navigateToProfileWithURL("https://www.instagram.com/districtupdates/")
-	pageScanner.navigateToProfileWithURL(pageURL)
+		// Navigate to profile
+		// pageScanner.navigateToProfileWithURL("https://www.instagram.com/districtupdates/")
+		pageScanner.navigateToProfileWithURL(pageURL)
 
-	//scroll to end
-	pageScanner.scrollToEnd(mediaClassName,false)
+		//scroll to end
+		pageScanner.scrollToEnd(mediaClassName,false)
 
-	// Get all post links
-	pageScanner.updatePostSlice(mediaClassName)
+		// Get all post links
+		pageScanner.updatePostSlice(mediaClassName)
 
-	// scan pages
-	var wg sync.WaitGroup
-	wg.Add(1)
-	pageScanner.scanPages(&wg)
-	wg.Wait()
+		//////////////////////////////////////////////////////
+		// Will be fetching this data using graphql request //
+		//////////////////////////////////////////////////////
+		// // scan pages 
+		// var wg sync.WaitGroup
+		// wg.Add(1)
+		// pageScanner.scanPages(&wg)
+		// wg.Wait()
 
-	for _, postInfo := range pageScanner.pageInfos {
-		fmt.Printf("url : %s \n",postInfo.Url)
-		fmt.Printf("likes : %s \n",postInfo.Likes)
-		fmt.Printf("hashtags : %s \n",postInfo.Hashtags)
-		fmt.Printf("profileTags : %s \n",postInfo.ProfileTags)
-		fmt.Println("--------------------")
-	}
+		// for _, postInfo := range pageScanner.pageInfos {
+		// 	fmt.Printf("url : %s \n",postInfo.Url)
+		// 	fmt.Printf("likes : %s \n",postInfo.Likes)
+		// 	fmt.Printf("hashtags : %s \n",postInfo.Hashtags)
+		// 	fmt.Printf("profileTags : %s \n",postInfo.ProfileTags)
+		// 	fmt.Println("--------------------")
+		// }
 
-	uri := "mongodb://localhost:27017"
-	mongoInstance := createInstance(uri)
-	mongoInstance.connectDB("insta")
-	mongoInstance.connectCollection(folder)
-	mongoInstance.insertData(pageScanner.pageInfos)
 
-	var download_wg sync.WaitGroup
+		var download_wg sync.WaitGroup
 
-	for _, pageInfo := range pageScanner.pageInfos{
-		download_wg.Add(1)
-		func (url string)  {
-			defer download_wg.Done()
-			_,err := instagramvideodownloader.DownloadLinkGenerator(pageInfo.Url, folder)
-			if err != nil {
-				fmt.Println("Error generating download link:", err)
-				return
-			}
-		}(pageInfo.Url)
-	}
-	download_wg.Wait()
+		for _, pageInfo := range pageScanner.pageInfos{
+			download_wg.Add(1)
+			func (pageInfo *PageInfo) { 
+				defer download_wg.Done()
+				resp,err := instagramvideodownloader.DownloadLinkGenerator(pageInfo.Url, folder)
+				pageInfo.Likes = strconv.Itoa(resp.Data.XdtShortcodeMedia.EdgeMediaPreviewLike.Count)
+				pageInfo.Caption = resp.Caption
+				pageInfo.Hashtags = resp.Hashtags
+				fmt.Println("likes : ",resp.Caption)
+				fmt.Println("caption : ",resp.Caption)
+				fmt.Println("hashtags : ",pageInfo.Hashtags)
+				fmt.Println("profileTags : ",pageInfo.ProfileTags)
+				if err != nil {
+					fmt.Println("Error generating download link:", err)
+					return
+				}
+			}(pageInfo)
+		}
+
+		uri := "mongodb://localhost:27017"
+		mongoInstance := createInstance(uri)
+		mongoInstance.connectDB("insta2")
+		mongoInstance.connectCollection(folder)
+		mongoInstance.insertData(pageScanner.pageInfos)
+
+
+		download_wg.Wait()
 	}
 }
 
