@@ -28,12 +28,61 @@ var likesClassName string = "span.xdj266r.x11i5rnm.xat24cr.x1mh8g0r.xexx8yu.x4ua
 var postInfoClassName string = "h1._ap3a._aaco._aacu._aacx._aad7._aade"
 var folder string = "cocomelon"
 var pageURL string = "https://www.instagram.com/cocomelon/"
+
+var folders []string = []string{
+	"toocool",
+	"yesminister",
+	"pattyshukla",
+	"minigolf",
+	"souljams",
+	"worldofwhisky",
+	"pindezaika",
+	"rageroom",
+	"zindagikekhayal",
+	"caravaggio",
+	"bestcomedylineup",
+	"bestcomedylineup",
+	"shapingtextures",
+	"taarukraina",
+	"ankurtewari",
+	"ankurtewari",
+	"potteryastherapy",
+	"arrahman",
+}
+
+var urls []string= []string{
+	"https://www.instagram.com/bandraborn/",
+	"https://www.instagram.com/yesministerbyessex/",	
+	"https://www.instagram.com/club.loka/",	
+	"https://www.instagram.com/minigolfmadness/",	
+	"https://www.instagram.com/bira91taproom/",	
+	"https://www.instagram.com/whiskysamba/",	
+	"https://www.instagram.com/shangrilanewdelhi/",	
+	"https://www.instagram.com/delhirageroom/",	
+	"https://www.instagram.com/amandeep.khayal/",	
+	"https://www.instagram.com/knmaindia/",	
+	"https://www.instagram.com/madhurvirli/",	
+	"https://www.instagram.com/pranavsharm_a/",
+	"https://www.instagram.com/p/DGiQSxuNYuJ/",	
+	"https://www.instagram.com/taarukraina/",	
+	"https://www.instagram.com/ankurtewatia_/",	
+	"https://www.instagram.com/ghalatfamily/",
+	"https://www.instagram.com/naveenchhaya.16/",		
+	"https://www.instagram.com/arrahman/",	
+}
 func main() {
 	pageScanner := createPageScanner("https://www.instagram.com/accounts/login/")
 	defer pageScanner.closeMainPage()
-
 	// Login
 	pageScanner.loginInstagram(os.Getenv("INSTA_USERNAME"),os.Getenv("INSTA_PASSWORD"))
+	if len(folders) != len(urls) {
+		fmt.Println("Error: folders and urls length mismatch")
+		return
+	}
+	for i:=0; i<len(urls); i++ {
+		folder = folders[i]
+		pageURL = urls[i]
+
 
 	// Navigate to profile
 	// pageScanner.navigateToProfileWithURL("https://www.instagram.com/districtupdates/")
@@ -79,9 +128,6 @@ func main() {
 		}(pageInfo.Url)
 	}
 	download_wg.Wait()
+	}
 }
 
-
-/*
-waterpark cocomelon atlantic arrahman toocool yesminister pattyshukla minigolf souljams worldofwhisky pindezaika rageroom zindagikekhayal caravaggio bestcomedylineup shapingtextures taarukraina ankurtewari potteryastherapy
-*/
